@@ -3,9 +3,13 @@
   import { get } from 'svelte/store';
 
   let { 
-    isCollapsed = false
+    isCollapsed = false,
+    userName = 'Benjamin Sitompul',
+    userEmail = 'benjamin.sitompul@bithealth.co.id'
   } = $props<{
     isCollapsed?: boolean;
+    userName?: string;
+    userEmail?: string;
   }>();
 
   // Top pill navbar state
@@ -73,6 +77,15 @@
   function handleProjectSelect(project: ProjectEnv) {
     selectedProject = project;
   }
+
+  function getInitials(name: string) {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  }
 </script>
 
 <aside class="hidden w-64 shrink-0 border-r bg-white md:block">
@@ -117,6 +130,18 @@
   </div>
 
   {#if activeTab === 'menu'}
+    <!-- User welcome -->
+    <div class="px-4">
+      <div class="w-full flex items-center gap-3 p-2 text-left rounded-md">
+        <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+          {getInitials(userName)}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">Welcome, {userName}</p>
+          <p class="text-xs text-gray-500 truncate">{userEmail}</p>
+        </div>
+      </div>
+    </div>
     <!-- Navigation Menu (Image 2 style) -->
     <nav class="p-4 space-y-1">
       {#each menus as menu}
