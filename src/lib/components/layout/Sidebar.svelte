@@ -1,23 +1,30 @@
 <script lang="ts">
   import { activePath, expandedMenus } from '$lib/stores/navigation';
   import { get } from 'svelte/store';
-  import { createEventDispatcher } from 'svelte';
-
-  const dispatch = createEventDispatcher();
 
   let { 
+    isCollapsed = false,
     userName = 'Benjamin Sitompul',
-    userEmail = 'benjamin.sitompul@bithealth.co.id',
-    isCollapsed = false
+    userEmail = 'benjamin.sitompul@bithealth.co.id'
   } = $props<{
+    isCollapsed?: boolean;
     userName?: string;
     userEmail?: string;
-    isCollapsed?: boolean;
   }>();
 
-  let showUserDropdown = $state(false);
-  let showProjectDropdown = $state(false);
-  let selectedProject = $state('Maintenance & Supports');
+  // Top pill navbar state
+  type TopTab = 'menu' | 'docs' | 'settings' | 'help';
+  let activeTab: TopTab = 'menu';
+
+  // Settings: selected project environment
+  type ProjectEnv = { project: string; env: string };
+  const projectEnvironments: ProjectEnv[] = [
+    { project: 'Hospita', env: 'Development' },
+    { project: 'Hospita', env: 'Production' },
+    { project: 'Klinika', env: 'Development' },
+    { project: 'Klinika', env: 'Production' }
+  ];
+  let selectedProject = $state<ProjectEnv>({ project: 'Hospita', env: 'Development' });
 
   type MenuItem = {
     id: string;
@@ -56,8 +63,6 @@
     { id: 'my-board', label: 'My Board', href: '/projects/clinical/my-board' }
   ];
 
-  const projectEnvironments = ['Maintenance & Supports', 'MD Now - Development', 'MD Now - Staging', 'MD Now - Production'];
-
   function toggleExpand(id: string) {
     const setCopy = new Set(get(expandedMenus));
     if (setCopy.has(id)) setCopy.delete(id);
@@ -69,61 +74,65 @@
     activePath.set(path);
   }
 
-  function handleUserMenuClick() {
-    showUserDropdown = !showUserDropdown;
-  }
-
-  function handleProjectSelect(project: string) {
+  function handleProjectSelect(project: ProjectEnv) {
     selectedProject = project;
-    showProjectDropdown = false;
-  }
-
-  function handleLogout() {
-    dispatch('logout');
   }
 
   function getInitials(name: string) {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
   }
 </script>
 
 <aside class="hidden w-64 shrink-0 border-r bg-white md:block">
-  <!-- Project Environment Switcher -->
-  <div class="p-4 border-b">
-    <div class="relative">
-      <label class="block text-xs font-medium text-gray-500 mb-2">Project Environment</label>
+  <!-- Top pill navbar -->
+  <div class="p-4">
+    <div class="flex items-center justify-between rounded-full bg-slate-800 px-4 py-2">
       <button
-        onclick={() => showProjectDropdown = !showProjectDropdown}
-        class="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class={`flex items-center gap-2 text-sm font-medium px-2 py-1 rounded-full transition-colors ${activeTab === 'menu' ? 'text-teal-300' : 'text-slate-300 hover:text-white'}`}
+        onclick={() => activeTab = 'menu'}
+        aria-label="Menu"
       >
-        <span>{selectedProject}</span>
-        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        <span>Menu</span>
+      </button>
+      <button
+        class={`p-1 rounded-full transition-colors ${activeTab === 'docs' ? 'text-teal-300' : 'text-slate-400 hover:text-white'}`}
+        onclick={() => activeTab = 'docs'}
+        aria-label="Docs"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-6-6h12M4 7a2 2 0 012-2h8l4 4v9a2 2 0 01-2 2H6a2 2 0 01-2-2V7z"></path>
         </svg>
       </button>
-      
-      {#if showProjectDropdown}
-        <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-          {#each projectEnvironments.filter(project => project !== selectedProject) as project}
-            <button
-              onclick={() => handleProjectSelect(project)}
-              class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-            >
-              {project}
-            </button>
-          {/each}
-        </div>
-      {/if}
+      <button
+        class={`p-1 rounded-full transition-colors ${activeTab === 'settings' ? 'text-teal-300' : 'text-slate-400 hover:text-white'}`}
+        onclick={() => activeTab = 'settings'}
+        aria-label="Settings"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+        </svg>
+      </button>
+      <button
+        class={`p-1 rounded-full transition-colors ${activeTab === 'help' ? 'text-teal-300' : 'text-slate-400 hover:text-white'}`}
+        onclick={() => activeTab = 'help'}
+        aria-label="Help"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10a4 4 0 118 0c0 2-4 2-4 5m0 3h.01M12 2a10 10 0 100 20 10 10 0 000-20z"></path>
+        </svg>
+      </button>
     </div>
   </div>
 
-  <!-- User Area -->
-  <div class="p-4 border-b">
-    <div class="relative">
-      <button
-        onclick={handleUserMenuClick}
-        class="w-full flex items-center gap-3 p-2 text-left hover:bg-gray-50 rounded-md transition-colors"
-      >
+  {#if activeTab === 'menu'}
+    <!-- User welcome -->
+    <div class="px-4">
+      <div class="w-full flex items-center gap-3 p-2 text-left rounded-md">
         <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
           {getInitials(userName)}
         </div>
@@ -131,45 +140,52 @@
           <p class="text-sm font-medium text-gray-900 truncate">Welcome, {userName}</p>
           <p class="text-xs text-gray-500 truncate">{userEmail}</p>
         </div>
-        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-        </svg>
-      </button>
-      
-      {#if showUserDropdown}
-        <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-          <a href="/profile" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md">My Profile</a>
-          <a href="/messages" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">Messages</a>
-          <a href="/settings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
-          <button onclick={handleLogout} class="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">Logout</button>
-        </div>
-      {/if}
+      </div>
     </div>
-  </div>
-
-  <!-- Navigation Menu -->
-  <nav class="p-4 space-y-1">
-    {#each menus as menu}
-      {#if menu.children}
-        <div>
-          <button 
-            class="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-md transition-colors" 
-            onclick={() => toggleExpand(menu.id)}
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={menu.icon}></path>
-            </svg>
-            <span class="flex-1">{menu.label}</span>
-            <svg class={`h-4 w-4 transition-transform ${$expandedMenus.has(menu.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          {#if $expandedMenus.has(menu.id)}
-            <div class="mt-1 space-y-1 pl-8">
-              {#each menu.children as item}
-                {#if item.id === 'clinical'}
-                  <!-- Clinical submenu -->
-                  <div>
+    <!-- Navigation Menu (Image 2 style) -->
+    <nav class="p-4 space-y-1">
+      {#each menus as menu}
+        {#if menu.children}
+          <div class="rounded-lg">
+            <button 
+              class="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-md transition-colors" 
+              onclick={() => toggleExpand(menu.id)}
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={menu.icon}></path>
+              </svg>
+              <span class="flex-1">{menu.label}</span>
+              <svg class={`h-4 w-4 transition-transform ${$expandedMenus.has(menu.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            {#if $expandedMenus.has(menu.id)}
+              <div class="mt-1 space-y-1 pl-8 border border-teal-300 rounded-xl p-2">
+                {#each menu.children as item}
+                  {#if item.id === 'clinical'}
+                    <div>
+                      <a 
+                        href={item.href} 
+                        class={`block px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors ${$activePath === item.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
+                        onclick={() => setActive(item.href)}
+                      >
+                        {item.label}
+                      </a>
+                      {#if $expandedMenus.has('clinical')}
+                        <div class="mt-1 space-y-1 pl-4">
+                          {#each clinicalSubMenus as subItem}
+                            <a 
+                              href={subItem.href} 
+                              class={`block px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-md transition-colors ${$activePath === subItem.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
+                              onclick={() => setActive(subItem.href)}
+                            >
+                              {subItem.label}
+                            </a>
+                          {/each}
+                        </div>
+                      {/if}
+                    </div>
+                  {:else}
                     <a 
                       href={item.href} 
                       class={`block px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors ${$activePath === item.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
@@ -177,47 +193,55 @@
                     >
                       {item.label}
                     </a>
-                    {#if $expandedMenus.has('clinical')}
-                      <div class="mt-1 space-y-1 pl-4">
-                        {#each clinicalSubMenus as subItem}
-                          <a 
-                            href={subItem.href} 
-                            class={`block px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-md transition-colors ${$activePath === subItem.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
-                            onclick={() => setActive(subItem.href)}
-                          >
-                            {subItem.label}
-                          </a>
-                        {/each}
-                      </div>
-                    {/if}
-                  </div>
-                {:else}
-                  <a 
-                    href={item.href} 
-                    class={`block px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors ${$activePath === item.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
-                    onclick={() => setActive(item.href)}
-                  >
-                    {item.label}
-                  </a>
-                {/if}
-              {/each}
+                  {/if}
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <a 
+            href={menu.href} 
+            class={`flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors ${$activePath === menu.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
+            onclick={() => menu.href && setActive(menu.href)}
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={menu.icon}></path>
+            </svg>
+            <span>{menu.label}</span>
+          </a>
+        {/if}
+      {/each}
+    </nav>
+  {:else if activeTab === 'settings'}
+    <!-- Settings view (Image 3 style) -->
+    <div class="px-4">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Project Environment</h2>
+      <div class="flex flex-col gap-3">
+        {#each projectEnvironments as env}
+          <button
+            class={`text-left border rounded-md px-4 py-3 hover:bg-gray-50 transition-colors ${env.project === selectedProject.project && env.env === selectedProject.env ? 'border-teal-400 ring-1 ring-teal-200 bg-teal-50' : 'border-gray-200'}`}
+            onclick={() => handleProjectSelect(env)}
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-lg text-gray-800">{env.project}</p>
+                <p class="text-sm text-gray-500">{env.env}</p>
+              </div>
+              {#if env.project === selectedProject.project && env.env === selectedProject.env}
+                <svg class="h-5 w-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              {/if}
             </div>
-          {/if}
-        </div>
-      {:else}
-        <a 
-          href={menu.href} 
-          class={`flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors ${$activePath === menu.href ? 'bg-blue-50 text-blue-700 font-medium' : ''}`} 
-          onclick={() => menu.href && setActive(menu.href)}
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={menu.icon}></path>
-          </svg>
-          <span>{menu.label}</span>
-        </a>
-      {/if}
-    {/each}
-  </nav>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {:else if activeTab === 'docs'}
+    <div class="p-4 text-sm text-gray-600">Documentation coming soon.</div>
+  {:else}
+    <div class="p-4 text-sm text-gray-600">Help & Support coming soon.</div>
+  {/if}
 </aside>
 
 
